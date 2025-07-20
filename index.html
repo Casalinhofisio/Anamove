@@ -26,7 +26,6 @@
 <header style="background-color: #2a6f8f; color: white; padding: 20px; text-align: center; border-radius: 0 0 12px 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
 <h1 style="margin: 0; font-size: 32px; font-family: 'Segoe UI', sans-serif;">🔍 AvaliaFisio — Sistema de Avaliação Fisioterapêutica</h1>
 </header>
-
 <div id="tabelaCompleta">
 <table id="tabela">
 <thead>
@@ -709,23 +708,35 @@ function gerarResumoAutomatico() {
     "Extensão de Cotovelo": 0
   };
 
-  document.querySelectorAll('[data-tipo="ADM"]').forEach(input => {
-    const valor = parseFloat(input.value);
-    if (!isNaN(valor)) {
-      const linha = input.closest("tr");
-      const movimento = linha.querySelector("td").innerText.split(" (")[0];
-      const ref = admRef[movimento] || 100;
-      const lado = input.dataset.lado === "D" ? "direito" : "esquerdo";
-      const porcentagem = movimento.includes("Extensão") && ref === 0
-        ? valor === 0 ? 100 : (valor > 10 ? 40 : 75)
-        : 100 * (valor / ref);
-      if (porcentagem < 90 && ref !== 0) {
-        let tipo = porcentagem < 70 ? "comprometida" : "moderadamente reduzida";
-        resumo += `• ADM ${tipo} na ${movimento.toLowerCase()} (${lado}) com ${valor}°.
-`;
-      }
+document.querySelectorAll('[data-tipo="ADM"]').forEach(input => {
+  const valor = parseFloat(input.value);
+  if (isNaN(valor)) return;
+
+  const linha = input.closest("tr");
+  const movimento = linha.querySelector("td").innerText.split(" (")[0];
+  const ref = admRef[movimento] || 0;
+  const lado = input.dataset.lado === "D" ? "direito" : "esquerdo";
+
+  let porcentagem;
+
+  // Corrige o bug do valor 0 e referência 0 — caso especial para "Extensão"
+  if (ref === 0) {
+    if (movimento.toLowerCase().includes("extensão")) {
+      porcentagem = valor === 0 ? 100 : (valor > 10 ? 40 : 75);
+    } else {
+      porcentagem = 100; // evita NaN — considera 100% se não for extensão
     }
-  });
+  } else {
+    porcentagem = 100 * (valor / ref);
+  }
+
+  // Só adiciona ao resumo se estiver realmente abaixo do esperado
+  if (porcentagem < 90 && ref !== 0) {
+    let tipo = porcentagem < 70 ? "comprometida" : "moderadamente reduzida";
+    resumo += `• ADM ${tipo} na ${movimento.toLowerCase()} (${lado}) com ${valor}°.\n`;
+  }
+});
+
 
   // Percorrer Tabela Oxford
   document.querySelectorAll("#tabela input[type='number']").forEach((input, idx) => {
@@ -771,4 +782,15 @@ window.onload = gerarResumoAutomatico;
 </ul>
 <p style="margin-top: 25px; color: #444;">📖 <em>Essas interpretações são baseadas em diretrizes clínicas de avaliação funcional e reabilitação fisioterapêutica.</em></p>
 </div>
-</body></html>
+<div style="margin-top: 30px; padding: 15px; background-color: #f2f2f2; border-radius: 8px;">
+<h3>💡 Como usamos o RPE (Escala de Esforço)</h3>
+<p>Durante os testes de força com elásticos, pedimos para a pessoa dizer de <strong>0 a 10</strong> o quanto ela sentiu de esforço, onde:</p>
+<ul>
+<li><strong>0</strong> é nenhum esforço</li>
+<li><strong>10</strong> é o máximo que consegue suportar</li>
+</ul>
+<p>👉 Se o número for <strong>até 6</strong>, o elástico está leve e podemos <strong>aumentar um pouco a carga</strong><br/>
+👉 Se o número for <strong>7 ou 8</strong>, o esforço está <strong>bom e controlado</strong><br/>
+👉 Se for <strong>9 ou 10</strong>, o elástico está muito forte, e aí a gente <strong>diminui um pouco para repetir com mais controle</strong></p>
+<p>Esse número nos ajuda a saber se a força está bem aplicada e ajustar o treino ou teste da melhor forma!</p>
+</div></body></html>
